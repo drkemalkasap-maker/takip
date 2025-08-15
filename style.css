@@ -1,0 +1,28 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color: #f5f5f5;
+}
+
+h1 {
+    text-align: center;
+}
+
+#takip-form {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#takip-list li {
+    background-color: white;
+    padding: 10px;
+    margin: 5px 0;
+    list-style: none;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+}
+
+button {
+    cursor: pointer;
+}
