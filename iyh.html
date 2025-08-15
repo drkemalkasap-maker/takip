@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>İş Yeri Hekimliği</title>
+<style>
+    body { font-family: Arial; text-align: center; }
+    hr { width: 300px; }
+    .group { margin-bottom: 20px; }
+    .row { margin: 5px 0; }
+    input{ width: 60px; }
+    label { margin-left: 5px; margin-right: 15px; }
+    .progress-container {
+        position: relative;
+        width: 300px;
+        height: 20px;
+        background-color: #ddd;
+        margin: 5px auto;
+        border-radius: 10px;
+    }
+    .progress-bar {
+        height: 100%;
+        width: 0%;
+        background-color: #4caf50;
+        border-radius: 10px;
+        text-align: center;
+        color: white;
+        font-size: 12px;
+        line-height: 20px;
+    }
+</style>
+</head>
+<body>
+
+<div class="group">
+    <h3>Ders</h3>
+    <div class="progress-container">
+        <div id="ders_yuzde" class="progress-bar">0%</div>
+    </div>
+    <div class="row">
+        <label>İzlenen:</label><input id="izlenen" min="0">
+        <label>Toplam:</label><input id="toplam" min="0">
+    </div>
+</div>
+<hr>
+
+<button onclick="kaydetTum()">Kaydet</button>
+
+<script>
+function kaydetTum() {
+    const izlenen = parseFloat(document.getElementById('izlenen').value) || 0;
+    const toplam = parseFloat(document.getElementById('toplam').value) || 0;
+
+    localStorage.setItem('izlenen', izlenen);
+    localStorage.setItem('toplam', toplam);
+
+    let yuzde = 0;
+    if (toplam > 0) {
+        yuzde = (izlenen / toplam) * 100;
+        if (yuzde > 100) yuzde = 100;
+    }
+
+    const bar = document.getElementById('ders_yuzde');
+    bar.style.width = yuzde + '%';
+    bar.textContent = yuzde.toFixed(2) + '%';
+}
+
+// Sayfa yüklendiğinde değerleri al ve göster
+window.onload = function() {
+    const izlenen = parseFloat(localStorage.getItem('izlenen')) || 0;
+    const toplam = parseFloat(localStorage.getItem('toplam')) || 0;
+
+    document.getElementById('izlenen').value = izlenen;
+    document.getElementById('toplam').value = toplam;
+
+    let yuzde = 0;
+    if (toplam > 0) {
+        yuzde = (izlenen / toplam) * 100;
+        if (yuzde > 100) yuzde = 100;
+    }
+
+    const bar = document.getElementById('ders_yuzde');
+    bar.style.width = yuzde + '%';
+    bar.textContent = yuzde.toFixed(2) + '%';
+};
+</script>
+
+</body>
+</html>

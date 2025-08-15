@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Clash of Clans</title>
+<style>
+    body { font-family: Arial; text-align: center; }
+    hr { width: 300px; }
+    .group { margin-bottom: 20px; }
+    .row { margin: 5px 0; }
+    input{ width: 30px; }
+    label { margin-left: 5px; margin-right: 15px; }
+    .progress-container {
+        position: relative;
+        width: 300px;
+        height: 20px;
+        background-color: #ddd;
+        margin: 5px auto;
+        border-radius: 10px;
+    }
+    .progress-bar {
+        height: 100%;
+        width: 0%;
+        background-color: #4caf50;
+        border-radius: 10px;
+        text-align: center;
+        color: white;
+        font-size: 12px;
+        line-height: 20px;
+    }
+</style>
+</head>
+<body>
+
+<!-- Bina -->
+<div class="group">
+    <h3>Bina</h3>
+    <div class="progress-container">
+        <div id="bina_yuzde" class="progress-bar">0%</div>
+    </div>
+    <div class="row">
+        <input id="bina_ay" min="0"><label>Ay</label>
+        <input id="bina_gun" min="0"><label>Gün</label>
+        <input id="bina_saat" min="0"><label>Saat</label>
+    </div>
+</div>
+<hr>
+
+<!-- Hayvan -->
+<div class="group">
+    <h3>Hayvan</h3>
+    <div class="progress-container">
+        <div id="hayvan_yuzde" class="progress-bar">0%</div>
+    </div>
+    <div class="row">
+        <input id="hayvan_ay" min="0"><label>Ay</label>
+        <input id="hayvan_gun" min="0"><label>Gün</label>
+        <input id="hayvan_saat" min="0"><label>Saat</label>
+    </div>
+</div>
+<hr>
+
+<!-- Lab -->
+<div class="group">
+    <h3>Lab</h3>
+     <div class="progress-container">
+        <div id="lab_yuzde" class="progress-bar">0%</div>
+    </div>
+    <div class="row">
+        <input id="lab_ay" min="0"><label>Ay</label>
+        <input id="lab_gun" min="0"><label>Gün</label>
+        <input id="lab_saat" min="0"><label>Saat</label>
+    </div>
+</div>
+<hr>
+
+<button onclick="kaydetTum()">Kaydet</button>
+
+<script>
+function kaydetTum() {
+    kaydet('bina');
+    kaydet('hayvan');
+    kaydet('lab');
+}
+
+function kaydet(tur) {
+    let ay = parseInt(document.getElementById(`${tur}_ay`).value) || 0;
+    let gun = parseInt(document.getElementById(`${tur}_gun`).value) || 0;
+    let saat = parseInt(document.getElementById(`${tur}_saat`).value) || 0;
+
+    let simdi = Date.now();
+    let toplamMs = (ay * 30 * 24 * 60 * 60 * 1000) +
+                   (gun * 24 * 60 * 60 * 1000) +
+                   (saat * 60 * 60 * 1000);
+
+    let bitis = simdi + toplamMs;
+
+    localStorage.setItem(`${tur}_bitis`, bitis);
+    localStorage.setItem(`${tur}_toplam`, toplamMs);
+}
+
+function guncelleGorunum(tur) {
+    let bitisZamani = localStorage.getItem(`${tur}_bitis`);
+    let toplamSure = localStorage.getItem(`${tur}_toplam`);
+    if (!bitisZamani || !toplamSure) return;
+
+    let simdi = Date.now();
+    let kalan = bitisZamani - simdi;
+
+    let kalanSaat = Math.floor(kalan / (1000 * 60 * 60));
+    let kalanGun = Math.floor(kalanSaat / 24);
+    let kalanAy = Math.floor(kalanGun / 30);
+
+    kalanGun = kalanGun % 30;
+    kalanSaat = kalanSaat % 24;
+
+    document.getElementById(`${tur}_ay`).value = kalanAy;
+    document.getElementById(`${tur}_gun`).value = kalanGun;
+    document.getElementById(`${tur}_saat`).value = kalanSaat;
+
+    let bitenYuzde = 100 - ((kalan / toplamSure) * 100);
+    document.getElementById(`${tur}_yuzde`).style.width = `${bitenYuzde}%`;
+    document.getElementById(`${tur}_yuzde`).innerText = `${bitenYuzde.toFixed(2)}%`;
+}
+
+function tumunuYukle() {
+    ['bina', 'hayvan', 'lab'].forEach(tur => guncelleGorunum(tur));
+}
+
+window.onload = function() {
+    tumunuYukle();
+    setInterval(tumunuYukle, 1000);
+};
+</script>
+
+</body>
+</html>
