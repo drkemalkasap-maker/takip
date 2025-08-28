@@ -86,9 +86,26 @@ Object.keys(data).forEach(key => {
 
   // Alt başlık ekleme
   addSubBtn.addEventListener("click", async () => {
-    const subTitle = subtitleInput.value.trim();
-    if (!subTitle) return alert("Please enter a subitem!");
+  const subTitle = subtitleInput.value.trim();
+  if (!subTitle) return alert("Please enter a subitem!");
 
+  if (subTitle.includes(":")) {
+    const [rawKey, ...rest] = subTitle.split(":");
+    const rawValue = rest.join(":"); // ":" birden fazla olabilir
+
+    const key = rawKey.trim().replace(/[.#$/\[\]]/g, "_");
+    const value = rawValue.trim();
+
+    if (!key || !value) return alert("Invalid format. Use 'Key: Value'.");
+
+    const subRef = child(currentRef, key);
+    const exists = await get(subRef);
+    if (exists.exists()) {
+      return alert("This subitem already exists!");
+    }
+
+    await set(subRef, value);
+  } else {
     const sanitizedKey = subTitle.replace(/[.#$/\[\]]/g, "_");
     const subRef = child(currentRef, sanitizedKey);
 
@@ -98,8 +115,11 @@ Object.keys(data).forEach(key => {
     }
 
     await set(subRef, { type: "subtitle" });
-    subtitleInput.value = "";
-  });
+  }
+
+  subtitleInput.value = "";
+});
+
 }, 'login.html');
 
 </script>
