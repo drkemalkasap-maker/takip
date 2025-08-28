@@ -40,48 +40,44 @@ const pathSegments = idParam.split("_"); // ['a', 'aa', 'aaa']
 
 // Show path as title
 itemTitle.textContent = pathSegments.join(" / ");
+  checkAuth(user => {
+    const idParam = new URLSearchParams(window.location.search).get("id");
+    if (!idParam) { alert("Item not found"); return; }
 
-checkAuth(user => {
-  // Firebase yolunu oluştur
-  let currentRef = ref(db, `users/${user.uid}`);
-  pathSegments.forEach(segment => {
-    currentRef = child(currentRef, segment);
-  });
+    const pathSegments = idParam.split("_");
+    let currentRef = ref(db, `users/${user.uid}`);
+    pathSegments.forEach(seg => currentRef = child(currentRef, seg));
 
-  // Listeleme
-  onValue(currentRef, snapshot => {
-    subitemsList.innerHTML = "";
-    const data = snapshot.val();
-    if (!data) return;
+    onValue(currentRef, snapshot => {
+      console.log("Dinlenen yol:", `users/${user.uid}/${pathSegments.join("/")}`);
+      console.log("Snapshot:", snapshot.val());
+      subitemsList.innerHTML = "";
+      const data = snapshot.val();
+      if (!data) return;
 
-    for (const key in data) {
-      if (key === "type") continue;
+      Object.keys(data).forEach(key => {
+        if (key === "type") return;
 
-      const li = document.createElement("li");
+        const li = document.createElement("li");
+        const span = document.createElement("span");
+        span.textContent = key;
+        span.style.cursor = "pointer";
+        span.addEventListener("click", () => {
+          const newId = [...pathSegments, key].join("_");
+          window.location.href = `edit.html?id=${encodeURIComponent(newId)}`;
+        });
 
-      const span = document.createElement("span");
-      span.textContent = key;
-      span.style.cursor = "pointer";
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete";
+        deleteBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          remove(child(currentRef, key));
+        });
 
-      // Alt başlığa tıklanınca yeni URL oluştur
-      const newId = [...pathSegments, key].join("_");
-      span.addEventListener("click", () => {
-        window.location.href = `edit.html?id=${encodeURIComponent(newId)}`;
+        li.append(span, deleteBtn);
+        subitemsList.append(li);
       });
 
-      const deleteBtn = document.createElement("button");
-      deleteBtn.textContent = "Delete";
-      deleteBtn.className = "deleteBtn";
-      deleteBtn.addEventListener("click", e => {
-        e.stopPropagation();
-        remove(child(currentRef, key));
-      });
-
-      li.appendChild(span);
-      li.appendChild(deleteBtn);
-      subitemsList.appendChild(li);
-    }
-  });
 
   // Alt başlık ekleme
   addSubBtn.addEventListener("click", async () => {
