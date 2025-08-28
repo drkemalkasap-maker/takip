@@ -61,9 +61,12 @@ checkAuth(user => {
       const span = document.createElement("span");
       span.textContent = key;
       span.style.cursor = "pointer";
-     span.addEventListener("click", () => {
-      alert("Clicked " + key);
-    });
+      
+   console.log("Adding click to:", key);
+span.addEventListener("click", () => {
+  alert("Clicked: " + key);
+});
+
 
 
       const deleteBtn = document.createElement("button");
