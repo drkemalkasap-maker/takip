@@ -1,4 +1,105 @@
 <!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>My Items</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="container">
+  <div class="input-group">
+    <input type="text" id="titleInput" placeholder="Yeni başlık (ör: a)" />
+    <button id="addBtn">Add</button>
+  </div>
+  <ul id="itemsList"></ul>
+</div>
+
+<script type="module">
+import { checkAuth, userRootRef, userPathRef } from './firebaseConfig.js';
+import { onValue, set, remove, get, child } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+const addBtn = document.getElementById("addBtn");
+const titleInput = document.getElementById("titleInput");
+const itemsList = document.getElementById("itemsList");
+
+let currentUserId = null;
+
+// Firebase key olarak kullanılamayan karakterleri temizle
+function sanitizeKey(s) {
+  return s.trim()
+          .replace(/\//g, '-')   // slash path ayırıcımız olduğu için slash yasak
+          .replace(/[.$#[\]]/g, '-') // firebase forbidden chars
+          .replace(/\s+/g,' ')   // çoklu boşluğu tek boşluk
+          .replace(/^\s+|\s+$/g,''); // baş-son trim
+}
+
+// benzersiz key oluştur (aynı isim varsa __1, __2 ... ekler)
+async function makeUniqueKey(rootRef, baseKey) {
+  baseKey = sanitizeKey(baseKey);
+  if (!baseKey) return null;
+  let key = baseKey;
+  let idx = 0;
+  while (true) {
+    const snap = await get(child(rootRef, key));
+    if (!snap.exists()) return key;
+    idx++;
+    key = `${baseKey}__${idx}`;
+  }
+}
+
+// Listeleme
+checkAuth(user => {
+  currentUserId = user.uid;
+  const rootRef = userRootRef(currentUserId);
+
+  onValue(rootRef, snapshot => {
+    itemsList.innerHTML = "";
+    if (!snapshot.exists()) return;
+    snapshot.forEach(childSnap => {
+      const key = childSnap.key;
+      // Eğer özel alan (ör. content) varsa root altında content olmayacak ama kontrol ekleyelim
+      // root altındaki doğrudan başlıkları gösteriyoruz
+      const li = document.createElement('li');
+      li.textContent = key;
+      li.style.cursor = "pointer";
+
+      const del = document.createElement('button');
+      del.textContent = "Delete";
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!confirm(`"${key}" silinsin mi?`)) return;
+        remove(child(rootRef, key));
+      });
+
+      li.addEventListener('click', () => {
+        // path olarak gönder (ilk seviye => key)
+        window.location.href = `edit.html?id=${encodeURIComponent(key)}`;
+      });
+
+      li.appendChild(del);
+      itemsList.appendChild(li);
+    });
+  });
+
+}, 'login.html');
+
+// Yeni başlık ekle
+addBtn.addEventListener('click', async () => {
+  const title = titleInput.value;
+  if (!title) return alert("Lütfen başlık girin!");
+  const rootRef = userRootRef(currentUserId);
+  const uniqueKey = await makeUniqueKey(rootRef, title);
+  if (!uniqueKey) return alert("Geçersiz başlık!");
+  // Başlangıçta boş object olarak koy (alt düğümler buraya gelecek)
+  set(child(rootRef, uniqueKey), {}).then(() => {
+    titleInput.value = "";
+  }).catch(e => alert("Hata: " + e.message));
+});
+</script>
+</body>
+</html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
