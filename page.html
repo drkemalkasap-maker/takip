@@ -75,10 +75,13 @@ checkAuth(user => {
       span.style.cursor = "pointer";
 
       // Alt başlığa tıklayınca yeni path ile page.html aç
-      span.onclick = () => {
-        const newPath = currentPath + "/" + key;
-        window.location.href = `page.html?path=${encodeURIComponent(newPath)}`;
-      };
+     // Alt başlığa tıklayınca yeni path ile page.html aç
+        span.addEventListener('click', e => {
+          e.stopPropagation();
+          const newPath = currentPath + "/" + key;
+          window.location.href = `page.html?path=${encodeURIComponent(newPath)}`;
+        });
+
 
       const delBtn = document.createElement('button');
       delBtn.textContent = "Sil";
