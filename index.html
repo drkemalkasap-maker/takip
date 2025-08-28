@@ -18,7 +18,7 @@
 
 <script type="module">
 import { checkAuth, userItemsRef } from './firebaseConfig.js';
-import { onValue, set, remove, child } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+import { onValue, set, remove, child, get } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
 const addBtn = document.getElementById("addBtn");
 const titleInput = document.getElementById("titleInput");
@@ -63,20 +63,31 @@ checkAuth(user => {
 }, 'login.html'); // kullanıcı yoksa login sayfasına yönlendir
 
 // Yeni item ekleme
-addBtn.addEventListener("click", () => {
+addBtn.addEventListener("click", async () => {
   const title = titleInput.value.trim();
   if (!title) return alert("Please enter a title!");
   if (!currentUserId) return alert("User not loaded yet!");
 
-  // Firebase'de geçerli key'e dönüştür (özel karakterleri temizle)
   const sanitizedKey = title.replace(/[.#$/\[\]]/g, "_");
 
   const itemsRef = userItemsRef(currentUserId);
   const itemRef = child(itemsRef, sanitizedKey);
 
-  set(itemRef, { type: "title" });
-  titleInput.value = "";
+  try {
+    const snapshot = await get(itemRef);
+    if (snapshot.exists()) {
+      alert("This item already exists!");
+      return;
+    }
+
+    await set(itemRef, { type: "title" });
+    titleInput.value = "";
+  } catch (error) {
+    console.error("Error checking or adding item:", error);
+    alert("An error occurred while adding the item.");
+  }
 });
+
 </script>
 
 </body>
