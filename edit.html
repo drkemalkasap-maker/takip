@@ -61,11 +61,10 @@ checkAuth(user => {
       const span = document.createElement("span");
       span.textContent = key;
       span.style.cursor = "pointer";
-      span.addEventListener("click", () => {
-        const newId = [...pathSegments, key].join("_");
-        console.log("Navigating to:", newId);
-        window.location.href = `edit.html?id=${encodeURIComponent(newId)}`;
-      });
+     span.addEventListener("click", () => {
+      alert("Clicked " + key);
+    });
+
 
       const deleteBtn = document.createElement("button");
       deleteBtn.textContent = "Delete";
