@@ -20,8 +20,8 @@
 </div>
 
 <script type="module">
-import { checkAuth, userItemRef } from './firebaseConfig.js';
-import { onValue, set, remove, child } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+import { checkAuth, db } from './firebaseConfig.js';
+import { ref, child, get, set, remove, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
 // DOM
 const itemTitle = document.getElementById("itemTitle");
@@ -29,39 +29,44 @@ const subtitleInput = document.getElementById("subtitleInput");
 const addSubBtn = document.getElementById("addSubBtn");
 const subitemsList = document.getElementById("subitemsList");
 
-// Get current item ID (could be a main or subitem)
+// Get path from URL
 const urlParams = new URLSearchParams(window.location.search);
-const currentKey = urlParams.get("id");
-if (!currentKey) {
+const idParam = urlParams.get("id"); // a_aa_aaa gibi
+if (!idParam) {
   alert("Item not found");
   window.location.href = "index.html";
 }
+const pathSegments = idParam.split("_"); // ['a', 'aa', 'aaa']
 
-// Show title
-itemTitle.textContent = currentKey;
+// Show path as title
+itemTitle.textContent = pathSegments.join(" / ");
 
-// Auth check
 checkAuth(user => {
-  const currentRef = userItemRef(user.uid, currentKey);
+  // Firebase yolunu oluştur
+  let currentRef = ref(db, `users/${user.uid}`);
+  pathSegments.forEach(segment => {
+    currentRef = child(currentRef, segment);
+  });
 
-  // Read children of current item
+  // Listeleme
   onValue(currentRef, snapshot => {
     subitemsList.innerHTML = "";
     const data = snapshot.val();
-
     if (!data) return;
 
     for (const key in data) {
       if (key === "type") continue;
 
       const li = document.createElement("li");
+
       const span = document.createElement("span");
       span.textContent = key;
       span.style.cursor = "pointer";
 
-      // Alt başlığa tıklanınca edit.html?id=key olarak aç
+      // Alt başlığa tıklanınca yeni URL oluştur
+      const newId = [...pathSegments, key].join("_");
       span.addEventListener("click", () => {
-        window.location.href = `edit.html?id=${encodeURIComponent(key)}`;
+        window.location.href = `edit.html?id=${encodeURIComponent(newId)}`;
       });
 
       const deleteBtn = document.createElement("button");
@@ -78,15 +83,20 @@ checkAuth(user => {
     }
   });
 
-  // Yeni alt başlık ekle
-  addSubBtn.addEventListener("click", () => {
+  // Alt başlık ekleme
+  addSubBtn.addEventListener("click", async () => {
     const subTitle = subtitleInput.value.trim();
     if (!subTitle) return alert("Please enter a subitem!");
 
     const sanitizedKey = subTitle.replace(/[.#$/\[\]]/g, "_");
     const subRef = child(currentRef, sanitizedKey);
-    set(subRef, { type: "subtitle" });
 
+    const exists = await get(subRef);
+    if (exists.exists()) {
+      return alert("This subitem already exists!");
+    }
+
+    await set(subRef, { type: "subtitle" });
     subtitleInput.value = "";
   });
 
