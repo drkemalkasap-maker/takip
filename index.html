@@ -54,10 +54,12 @@ checkAuth(user => {
       const nameSpan = document.createElement('span');
       nameSpan.textContent = key;
       nameSpan.style.cursor = "pointer";
-      nameSpan.onclick = () => {
+       // Başlığa tıklayınca page.html aç
+      nameSpan.addEventListener('click', () => {
         const path = encodeURIComponent(key);
         window.location.href = `page.html?path=${path}`;
-      };
+      });
+
 
       const delBtn = document.createElement('button');
       delBtn.textContent = "Sil";
