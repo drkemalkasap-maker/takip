@@ -34,9 +34,9 @@ export function checkAuth(callback, redirectTo = null) {
  * Ortak referanslar
  */
 export function userItemRef(userId, itemId) {
-  return ref(db, `users/${userId}/items/${itemId}`);
+  return ref(db, `users/${userId}/${itemId}`);
 }
 
 export function userItemsRef(userId) {
-  return ref(db, `users/${userId}/items`);
+  return ref(db, `users/${userId}`);
 }
