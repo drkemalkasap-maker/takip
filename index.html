@@ -1,94 +1,83 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>Başlıklar</title>
-<link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Items</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
 <div id="container">
-  <h1>Başlıklar</h1>
-
   <div class="input-group">
-    <input type="text" id="titleInput" placeholder="Yeni başlık (ör: a)" />
-    <button id="addBtn">Ekle</button>
+    <input type="text" id="titleInput" placeholder="Enter item" />
+    <button id="addBtn">Add</button>
   </div>
-
   <ul id="itemsList"></ul>
 </div>
 
 <script type="module">
-import { checkAuth, userRootRef } from './firebaseConfig.js';
-import { onValue, set, remove, child, get } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+import { checkAuth, userItemsRef } from './firebaseConfig.js';
+import { onValue, set, remove, child } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
-const titleInput = document.getElementById('titleInput');
-const addBtn = document.getElementById('addBtn');
-const itemsList = document.getElementById('itemsList');
+const addBtn = document.getElementById("addBtn");
+const titleInput = document.getElementById("titleInput");
+const itemsList = document.getElementById("itemsList");
 
 let currentUserId = null;
 
-// Firebase key olarak kullanılamayan karakterleri temizle
-function sanitizeKey(s) {
-  return String(s || '').trim()
-    .replace(/\//g, '-')       
-    .replace(/[.$#[\]]/g, '-') 
-    .replace(/\s+/g, ' ')      
-    .replace(/^\s+|\s+$/g, ''); 
-}
-
+// Kullanıcıyı kontrol et ve veri yükle
 checkAuth(user => {
   currentUserId = user.uid;
-  const rootRef = userRootRef(currentUserId);
+  const itemsRef = userItemsRef(currentUserId);
 
-  onValue(rootRef, snapshot => {
-    itemsList.innerHTML = '';
-    if (!snapshot.exists()) return;
-   snapshot.forEach(childSnap => {
-  const key = childSnap.key;
+  // Verileri dinle ve listele
+  onValue(itemsRef, snapshot => {
+    itemsList.innerHTML = "";
+    snapshot.forEach(childSnap => {
+      const li = document.createElement("li");
 
-  const li = document.createElement('li');
-  li.style.display = "flex";
-  li.style.alignItems = "center";
-  li.style.gap = "8px";
+      const span = document.createElement("span");
+      span.textContent = childSnap.key; // Başlık
+      span.className = "itemText";
 
-  const nameSpan = document.createElement('span');
-  nameSpan.textContent = key;
-  nameSpan.style.cursor = "pointer";
+      const deleteBtn = document.createElement("button");
+      deleteBtn.textContent = "Delete";
+      deleteBtn.className = "deleteBtn";
+      deleteBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        remove(child(itemsRef, childSnap.key));
+      });
 
-  // Başlığa tıklayınca page.html aç
-  nameSpan.addEventListener('click', () => {
-    const path = encodeURIComponent(key);
-    window.location.href = `page.html?path=${path}`;
+      li.appendChild(span);
+      li.appendChild(deleteBtn);
+
+      li.addEventListener("click", () => {
+        window.location.href = `edit.html?id=${encodeURIComponent(childSnap.key)}`;
+      });
+
+      itemsList.appendChild(li);
+    });
   });
 
-  const delBtn = document.createElement('button');
-  delBtn.textContent = "Sil";
-  delBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (!confirm(`"${key}" silinsin mi?`)) return;
-    remove(child(rootRef, key)).catch(err => alert('Silme hatası: ' + err.message));
-  });
+}, 'login.html'); // kullanıcı yoksa login sayfasına yönlendir
 
-  li.appendChild(nameSpan);
-  li.appendChild(delBtn);
-  itemsList.appendChild(li);
+// Yeni item ekleme
+addBtn.addEventListener("click", () => {
+  const title = titleInput.value.trim();
+  if (!title) return alert("Please enter a title!");
+  if (!currentUserId) return alert("User not loaded yet!");
+
+  // Firebase'de geçerli key'e dönüştür (özel karakterleri temizle)
+  const sanitizedKey = title.replace(/[.#$/\[\]]/g, "_");
+
+  const itemsRef = userItemsRef(currentUserId);
+  const itemRef = child(itemsRef, sanitizedKey);
+
+  set(itemRef, { type: "title" });
+  titleInput.value = "";
 });
-
-  });
-
-  addBtn.addEventListener('click', async () => {
-    const raw = titleInput.value;
-    const key = sanitizeKey(raw);
-    if (!key) return alert('Lütfen geçerli bir başlık girin!');
-    const existing = await get(child(rootRef, key));
-    if (existing.exists()) return alert('Bu başlık zaten var!');
-    set(child(rootRef, key), { type: "title" })
-      .then(() => { titleInput.value = ''; })
-      .catch(err => alert('Ekleme hatası: ' + err.message));
-  });
-
-}, 'login.html');
 </script>
+
 </body>
 </html>
