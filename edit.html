@@ -37,34 +37,38 @@ if (!mainKey) {
   window.location.href = "index.html";
 }
 
-// Sayfa başlığını ayarla
+// Sayfa başlığı
 itemTitle.textContent = mainKey;
 
 // Kullanıcıyı kontrol et
 checkAuth(user => {
-  const subitemsRef = child(userItemRef(user.uid, mainKey), "subitems");
+  const mainRef = userItemRef(user.uid, mainKey);
 
   // Listeleme
-  onValue(subitemsRef, snapshot => {
+  onValue(mainRef, snapshot => {
     subitemsList.innerHTML = "";
-    snapshot.forEach(childSnap => {
-      const li = document.createElement("li");
+    const data = snapshot.val();
 
+    for (const key in data) {
+      if (key === "type") continue; // sadece "title" ana veriyi atla
+      const value = data[key];
+
+      const li = document.createElement("li");
       const span = document.createElement("span");
-      span.textContent = childSnap.key;
+      span.textContent = key;
 
       const deleteBtn = document.createElement("button");
       deleteBtn.textContent = "Delete";
       deleteBtn.className = "deleteBtn";
       deleteBtn.addEventListener("click", e => {
         e.stopPropagation();
-        remove(child(subitemsRef, childSnap.key));
+        remove(child(mainRef, key));
       });
 
       li.appendChild(span);
       li.appendChild(deleteBtn);
       subitemsList.appendChild(li);
-    });
+    }
   });
 
   // Alt başlık ekleme
@@ -73,8 +77,8 @@ checkAuth(user => {
     if (!subTitle) return alert("Please enter a subitem!");
 
     const sanitizedKey = subTitle.replace(/[.#$/\[\]]/g, "_");
-    const subitemRef = child(subitemsRef, sanitizedKey);
-    set(subitemRef, { type: "subtitle" });
+    const subRef = child(mainRef, sanitizedKey);
+    set(subRef, { type: "subtitle" });
 
     subtitleInput.value = "";
   });
