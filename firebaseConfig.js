@@ -33,10 +33,15 @@ export function checkAuth(callback, redirectTo = null) {
 /**
  * Ortak referanslar
  */
-export function userItemRef(userId, itemId) {
-  return ref(db, `users/${userId}/items/${itemId}`);
+
+// Kullanıcının root ref'i: users/USER_ID
+export function userRootRef(userId) {
+  return ref(db, `users/${userId}`);
 }
 
-export function userItemsRef(userId) {
-  return ref(db, `users/${userId}/items`);
+// Utility: belirli bir path altındaki ref
+// path örn: "a", "a/aa", "a/aa/aaa"
+export function userPathRef(userId, path) {
+  if (!path) return userRootRef(userId);
+  return ref(db, `users/${userId}/${path}`);
 }
