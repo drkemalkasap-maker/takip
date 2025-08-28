@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="utf-8" />
+<meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
 <title>Başlıklar</title>
 <link rel="stylesheet" href="style.css" />
@@ -30,8 +30,7 @@ let currentUserId = null;
 
 // Firebase key olarak kullanılamayan karakterleri temizle
 function sanitizeKey(s) {
-  return String(s || '')
-    .trim()
+  return String(s || '').trim()
     .replace(/\//g, '-')       // '/' bizim path ayırıcımız olmasın
     .replace(/[.$#[\]]/g, '-') // Firebase yasaklı char'ları değiştir
     .replace(/\s+/g, ' ')      // çoklu boşluğu tek boşluk yap
@@ -42,7 +41,7 @@ checkAuth(user => {
   currentUserId = user.uid;
   const rootRef = userRootRef(currentUserId);
 
-  // Root altındaki başlıkları canlı dinle ve listele
+  // Başlıkları canlı dinle ve listele
   onValue(rootRef, snapshot => {
     itemsList.innerHTML = '';
     if (!snapshot.exists()) return;
@@ -58,11 +57,11 @@ checkAuth(user => {
 
       const delBtn = document.createElement('button');
       delBtn.textContent = "Sil";
-      delBtn.addEventListener('click', (e) => {
+      delBtn.className = "deleteBtn";
+      delBtn.addEventListener('click', e => {
         e.stopPropagation();
         if (!confirm(`"${key}" silinsin mi?`)) return;
-        remove(child(rootRef, key))
-          .catch(err => alert('Silme hatası: ' + err.message));
+        remove(child(rootRef, key)).catch(err => alert('Silme hatası: ' + err.message));
       });
 
       li.appendChild(nameSpan);
@@ -71,26 +70,22 @@ checkAuth(user => {
     });
   });
 
+  // Yeni başlık ekleme
+  addBtn.addEventListener('click', async () => {
+    const raw = titleInput.value;
+    const key = sanitizeKey(raw);
+    if (!key) return alert('Lütfen geçerli bir başlık girin!');
+
+    const existing = await get(child(rootRef, key));
+    if (existing.exists()) return alert('Bu başlık zaten var!');
+
+    // type: "başlık" olarak kaydet
+    set(child(rootRef, key), { type: "başlık" })
+      .then(() => { titleInput.value = ''; })
+      .catch(err => alert('Ekleme hatası: ' + err.message));
+  });
+
 }, 'login.html');
-
-// Yeni başlık ekleme (value olarak boş obje koyuyoruz)
-addBtn.addEventListener('click', async () => {
-  const raw = titleInput.value;
-  const key = sanitizeKey(raw);
-  if (!key) return alert('Lütfen geçerli bir başlık girin!');
-  const rootRef = userRootRef(currentUserId);
-
-  // Eğer aynı key zaten varsa uyar (opsiyonel: üzerine yazma)
-  const existing = await get(child(rootRef, key));
-  if (existing.exists()) {
-    return alert('Bu başlık zaten var. Farklı bir isim deneyin.');
-  }
-
-  // Boş obje koyuyoruz; bu, Firebase DB'de node'u oluşturur
-  set(child(rootRef, key), "deneme")
-    .then(() => { titleInput.value = ''; })
-    .catch(err => alert('Ekleme hatası: ' + err.message));
-});
 </script>
 </body>
 </html>
