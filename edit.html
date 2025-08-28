@@ -57,12 +57,16 @@ Object.keys(data).forEach(key => {
   if (key === "type") return;
 
   const value = data[key];
+
+  // ✅ 1. Alt başlık mı kontrolü
+  const isSubtitle = typeof value === "object" && value.type === "subtitle";
+
   const li = document.createElement("li");
   li.style.cursor = "pointer";
 
+  // ✅ 2. Tıklama davranışı
   li.addEventListener("click", () => {
-    // Eğer alt başlık (object ve type: subtitle) ise yönlendir
-    if (typeof value === "object" && value.type === "subtitle") {
+    if (isSubtitle) {
       const newId = [...pathSegments, key].join("_");
       window.location.href = `edit.html?id=${encodeURIComponent(newId)}`;
     } else {
@@ -70,16 +74,23 @@ Object.keys(data).forEach(key => {
     }
   });
 
+  // ✅ 3. Görüntülenecek metin
   const span = document.createElement("span");
-  span.textContent = key;
+  if (isSubtitle) {
+    span.textContent = key;
+  } else {
+    span.textContent = `${key}: ${value}`;
+  }
 
+  // ✅ 4. Silme butonu
   const deleteBtn = document.createElement("button");
   deleteBtn.textContent = "Delete";
   deleteBtn.addEventListener("click", e => {
-    e.stopPropagation(); // li'ye tıklamayı engelle
+    e.stopPropagation();
     remove(child(currentRef, key));
   });
 
+  // ✅ 5. Listeye ekle
   li.append(span, deleteBtn);
   subitemsList.append(li);
 });
