@@ -1,121 +1,86 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>View & Edit Item</title>
-<link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Edit Item</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
 <div id="container">
   <h1 id="itemTitle">Loading...</h1>
 
   <div class="input-group">
-    <input type="text" id="childInput" placeholder="Alt başlık ekle (ör: aa)" />
-    <button id="addChildBtn">Add</button>
+    <input type="text" id="subtitleInput" placeholder="Enter subitem" />
+    <button id="addSubBtn">Add Subitem</button>
   </div>
 
-  <ul id="childrenList"></ul>
+  <ul id="subitemsList"></ul>
 </div>
 
 <script type="module">
-import { checkAuth, userPathRef } from './firebaseConfig.js';
-import { onValue, set, remove, get, child } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+import { checkAuth, userItemRef } from './firebaseConfig.js';
+import { onValue, set, remove, child } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
-const params = new URLSearchParams(window.location.search);
-const pathParam = params.get('id'); // örn: "a" veya "a/aa"
-if (!pathParam) {
-  alert("No id provided!");
+// DOM Elements
+const itemTitle = document.getElementById("itemTitle");
+const subtitleInput = document.getElementById("subtitleInput");
+const addSubBtn = document.getElementById("addSubBtn");
+const subitemsList = document.getElementById("subitemsList");
+
+// Get main item title from URL
+const urlParams = new URLSearchParams(window.location.search);
+const mainKey = urlParams.get("id");
+if (!mainKey) {
+  alert("Item not found");
   window.location.href = "index.html";
 }
 
-const itemTitle = document.getElementById("itemTitle");
-const childInput = document.getElementById("childInput");
-const addChildBtn = document.getElementById("addChildBtn");
-const childrenList = document.getElementById("childrenList");
+// Sayfa başlığını ayarla
+itemTitle.textContent = mainKey;
 
-function sanitizeKey(s) {
-  return s.trim()
-          .replace(/\//g, '-')
-          .replace(/[.$#[\]]/g, '-')
-          .replace(/\s+/g,' ')
-          .replace(/^\s+|\s+$/g,'');
-}
+// Kullanıcıyı kontrol et
+checkAuth(user => {
+  const subitemsRef = child(userItemRef(user.uid, mainKey), "subitems");
 
-// benzersiz key (aynı isim varsa __1, __2)
-async function makeUniqueKey(rootRef, baseKey) {
-  baseKey = sanitizeKey(baseKey);
-  if (!baseKey) return null;
-  let key = baseKey;
-  let idx = 0;
-  while (true) {
-    const snap = await get(child(rootRef, key));
-    if (!snap.exists()) return key;
-    idx++;
-    key = `${baseKey}__${idx}`;
-  }
-}
+  // Listeleme
+  onValue(subitemsRef, snapshot => {
+    subitemsList.innerHTML = "";
+    snapshot.forEach(childSnap => {
+      const li = document.createElement("li");
 
-let currentUserId = null;
-let currentPath = decodeURIComponent(pathParam); // örn "a" veya "a/aa"
-let currentNodeRef = null;
+      const span = document.createElement("span");
+      span.textContent = childSnap.key;
 
-checkAuth(async (user) => {
-  currentUserId = user.uid;
-  currentNodeRef = userPathRef(currentUserId, currentPath);
-
-  // Başlığı göster (son segment)
-  const segments = currentPath.split('/');
-  itemTitle.textContent = segments[segments.length - 1];
-
-  // Çocukları dinle
-  onValue(currentNodeRef, snap => {
-    childrenList.innerHTML = "";
-    if (!snap.exists()) return;
-    snap.forEach(childSnap => {
-      const key = childSnap.key;
-      if (key === 'content') return; // eğer varsa atla (biz artık kullanmıyoruz ama koruyalım)
-      const li = document.createElement('li');
-      li.style.display = "flex";
-      li.style.alignItems = "center";
-      li.style.gap = "8px";
-
-      const btn = document.createElement('button');
-      btn.textContent = key;
-      btn.style.cursor = "pointer";
-      btn.addEventListener('click', () => {
-        // path genişlet ve yeniden aç
-        const newPath = `${currentPath}/${key}`;
-        window.location.href = `edit.html?id=${encodeURIComponent(newPath)}`;
-      });
-
-      const del = document.createElement('button');
-      del.textContent = "Delete";
-      del.addEventListener('click', (e) => {
+      const deleteBtn = document.createElement("button");
+      deleteBtn.textContent = "Delete";
+      deleteBtn.className = "deleteBtn";
+      deleteBtn.addEventListener("click", e => {
         e.stopPropagation();
-        if (!confirm(`"${key}" silinsin mi?`)) return;
-        remove(child(currentNodeRef, key));
+        remove(child(subitemsRef, childSnap.key));
       });
 
-      li.appendChild(btn);
-      li.appendChild(del);
-      childrenList.appendChild(li);
+      li.appendChild(span);
+      li.appendChild(deleteBtn);
+      subitemsList.appendChild(li);
     });
   });
 
-}, 'login.html');
+  // Alt başlık ekleme
+  addSubBtn.addEventListener("click", () => {
+    const subTitle = subtitleInput.value.trim();
+    if (!subTitle) return alert("Please enter a subitem!");
 
-// Yeni alt başlık ekle
-addChildBtn.addEventListener('click', async () => {
-  const title = childInput.value;
-  if (!title) return alert("Lütfen alt başlık girin!");
-  const uniqueKey = await makeUniqueKey(currentNodeRef, title);
-  if (!uniqueKey) return alert("Geçersiz başlık!");
-  // Yeni child node'u boş obje ile oluştur
-  set(child(currentNodeRef, uniqueKey), {}).then(() => {
-    childInput.value = "";
-  }).catch(e => alert('Hata: ' + e.message));
-});
+    const sanitizedKey = subTitle.replace(/[.#$/\[\]]/g, "_");
+    const subitemRef = child(subitemsRef, sanitizedKey);
+    set(subitemRef, { type: "subtitle" });
+
+    subtitleInput.value = "";
+  });
+
+}, 'login.html');
 </script>
+
 </body>
 </html>
