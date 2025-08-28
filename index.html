@@ -1,146 +1,78 @@
-/* Genel body ve container */
-body {
-  font-family: Arial, sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 40px 20px;
-  background: #f5f5f5;
-  margin: 0;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Items</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-/* Container */
-#container {
-  width: 100%;
-  max-width: 900px; /* edit için geniş, index de dar olabilir */
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  display: flex;
-  flex-direction: column;
-}
+<div id="container">
+  <div class="input-group">
+    <input type="text" id="titleInput" placeholder="Enter item" />
+    <button id="addBtn">Add</button>
+  </div>
+  <ul id="itemsList"></ul>
+</div>
 
-/* Başlık */
-#itemTitle {
-  margin-bottom: 15px;
-  font-size: 24px;
-  font-weight: 600;
-  text-align: center;
-}
+<script type="module">
+import { checkAuth, userItemsRef } from './firebaseConfig.js';
+import { onValue, push, set, remove } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
-/* Input grubu (index.html için) */
-.input-group {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
-}
+const addBtn = document.getElementById("addBtn");
+const titleInput = document.getElementById("titleInput");
+const itemsList = document.getElementById("itemsList");
 
-input {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 16px;
-}
+let currentUserId = null;
 
-/* Butonlar */
-button, #saveBtn {
-  padding: 10px 15px;
-  font-size: 16px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  background-color: #007bff;
-  color: white;
-  transition: background 0.2s;
-}
+// Kullanıcıyı kontrol et ve veri yükle
+checkAuth(user => {
+  currentUserId = user.uid;
+  const itemsRef = userItemsRef(currentUserId);
 
-button:hover, #saveBtn:hover {
-  background-color: #0056b3;
-}
+  onValue(itemsRef, snapshot => {
+    itemsList.innerHTML = "";
+    snapshot.forEach(child => {
+      const li = document.createElement("li");
 
-/* Liste elemanları (index.html) */
-ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
+      const span = document.createElement("span");
+      span.textContent = child.val().name;
+      span.className = "itemText";
 
-li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 15px;
-  margin-bottom: 10px;
-  border-radius: 8px;
-  background: #f0f0f0;
-  cursor: pointer;
-  transition: background 0.2s;
-}
+      const deleteBtn = document.createElement("button");
+      deleteBtn.textContent = "Delete";
+      deleteBtn.className = "deleteBtn";
+      deleteBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        remove(userItemsRef(currentUserId, child.key));
+      });
 
-li:hover {
-  background: #e0e0e0;
-}
+      li.appendChild(span);
+      li.appendChild(deleteBtn);
 
-/* Delete buton (index.html) */
-.deleteBtn {
-  background: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 5px 10px;
-  cursor: pointer;
-  font-size: 14px;
-  margin-left: 10px;
-}
+      li.addEventListener("click", () => {
+        window.location.href = `edit.html?id=${child.key}`;
+      });
 
-.deleteBtn:hover {
-  background: #a71d2a;
-}
+      itemsList.appendChild(li);
+    });
+  });
 
-/* Liste elemanı metin (index.html) */
-.itemText {
-  flex-grow: 1;
-}
+}, 'login.html'); // kullanıcı yoksa login sayfasına yönlendir
 
-/* TipTap editör (edit.html) */
-.element {
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  padding: 10px;
-  min-height: 250px;
-  margin-bottom: 15px;
-  overflow-x: auto;
-}
+// Yeni item ekleme
+addBtn.addEventListener("click", () => {
+  const title = titleInput.value.trim();
+  if (!title) return alert("Please enter a title!");
+  if (!currentUserId) return alert("User not loaded yet!");
 
-/* Table stilleri */
-table {
-  border-collapse: collapse;
-  width: 100%;
-}
+  const itemsRef = userItemsRef(currentUserId);
+  const newRef = push(itemsRef);
+  set(newRef, { name: title, detail: "" });
+  titleInput.value = "";
+});
+</script>
 
-table td, table th {
-  border: 1px solid #999;
-  padding: 5px;
-}
-
-/* Mobil uyumlu */
-@media (max-width: 600px) {
-  #itemTitle { font-size: 20px; }
-  .element { min-height: 200px; }
-  button, #saveBtn { width: 100%; align-self: stretch; }
-}
-
-@media (max-width: 500px) {
-  .input-group {
-    flex-direction: column;
-  }
-  input, button {
-    width: 100%;
-    margin: 0;
-  }
-  button {
-    margin-top: 10px;
-  }
-}
+</body>
+</html>
