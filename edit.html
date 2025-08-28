@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>View & Edit Item</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="container">
+  <h1 id="itemTitle">Loading...</h1>
+
+  <div class="input-group">
+    <input type="text" id="childInput" placeholder="Alt başlık ekle (ör: aa)" />
+    <button id="addChildBtn">Add</button>
+  </div>
+
+  <ul id="childrenList"></ul>
+
+  <h3>Content (kaydetmek istersen)</h3>
+  <div class="element"></div>
+  <button id="saveBtn">Save Content</button>
+</div>
+
+<script type="module">
+import { checkAuth, userPathRef } from './firebaseConfig.js';
+import { onValue, set, remove, get, child } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+import { Editor } from "https://esm.sh/@tiptap/core";
+import StarterKit from "https://esm.sh/@tiptap/starter-kit";
+
+const params = new URLSearchParams(window.location.search);
+const pathParam = params.get('id'); // örn: "a" veya "a/aa"
+if (!pathParam) {
+  alert("No id provided!");
+  window.location.href = "index.html";
+}
+
+const itemTitle = document.getElementById("itemTitle");
+const childInput = document.getElementById("childInput");
+const addChildBtn = document.getElementById("addChildBtn");
+const childrenList = document.getElementById("childrenList");
+const saveBtn = document.getElementById("saveBtn");
+let editor;
+
+function sanitizeKey(s) {
+  return s.trim()
+          .replace(/\//g, '-')   // slash path ayırıcımız olduğu için slash yasak
+          .replace(/[.$#[\]]/g, '-') 
+          .replace(/\s+/g,' ')
+          .replace(/^\s+|\s+$/g,'');
+}
+
+async function makeUniqueKey(rootRef, baseKey) {
+  baseKey = sanitizeKey(baseKey);
+  if (!baseKey) return null;
+  let key = baseKey;
+  let idx = 0;
+  while (true) {
+    const snap = await get(child(rootRef, key));
+    if (!snap.exists()) return key;
+    idx++;
+    key = `${baseKey}__${idx}`;
+  }
+}
+
+let currentUserId = null;
+let currentPath = decodeURIComponent(pathParam); // e.g. "a/aa"
+let currentNodeRef = null;
+
+checkAuth(async (user) => {
+  currentUserId = user.uid;
+  currentNodeRef = userPathRef(currentUserId, currentPath);
+
+  // Başlığı (son segment) göster
+  const segments = currentPath.split('/');
+  itemTitle.textContent = segments[segments.length - 1];
+
+  // Çocukları dinle (content key'ini atla)
+  onValue(currentNodeRef, snap => {
+    childrenList.innerHTML = "";
+    if (!snap.exists()) return;
+    snap.forEach(childSnap => {
+      const key = childSnap.key;
+      if (key === 'content') return; // content ayrı alan
+      const li = document.createElement('li');
+      li.style.cursor = "pointer";
+      li.textContent = key;
+
+      const del = document.createElement('button');
+      del.textContent = "Delete";
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!confirm(`"${key}" silinsin mi?`)) return;
+        remove(child(currentNodeRef, key));
+      });
+
+      li.addEventListener('click', () => {
+        // path genişletilip aynı edit.html'e yönlendirme
+        const newPath = `${currentPath}/${encodeURIComponent(key)}`;
+        window.location.href = `edit.html?id=${encodeURIComponent(currentPath + '/' + key)}`;
+      });
+
+      li.appendChild(del);
+      childrenList.appendChild(li);
+    });
+  });
+
+  // Rich-text editor (content alanı)
+  editor = new Editor({
+    element: document.querySelector('.element'),
+    editable: true,
+    extensions: [StarterKit],
+    content: "<p>İçerik yoksa buraya yazabilirsiniz.</p>"
+  });
+
+  // content alanını dinle ve yükle
+  onValue(child(currentNodeRef, 'content'), snap => {
+    const html = snap.exists() ? snap.val() : "";
+    if (html) editor.commands.setContent(html);
+  });
+
+}, 'login.html');
+
+// Yeni alt başlık ekle
+addChildBtn.addEventListener('click', async () => {
+  const title = childInput.value;
+  if (!title) return alert("Lütfen alt başlık girin!");
+  const uniqueKey = await makeUniqueKey(currentNodeRef, title);
+  if (!uniqueKey) return alert("Geçersiz başlık!");
+  // Yeni child node'u boş obje ile oluştur
+  set(child(currentNodeRef, uniqueKey), {}).then(() => childInput.value = "");
+});
+
+// İçerik kaydet
+saveBtn.addEventListener('click', () => {
+  if (!editor) return;
+  const html = editor.getHTML();
+  set(child(currentNodeRef, 'content'), html)
+    .then(() => alert('Content kaydedildi ✅'))
+    .catch(e => alert('Kaydetme hatası: ' + e.message));
+});
+</script>
+</body>
+</html>
