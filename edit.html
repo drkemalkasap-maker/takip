@@ -78,7 +78,6 @@ checkAuth(user => {
       subitemsList.append(li);
     });
   });
-}, 'login.html');
 
   // Alt başlık ekleme
   addSubBtn.addEventListener("click", async () => {
@@ -96,6 +95,7 @@ checkAuth(user => {
     await set(subRef, { type: "subtitle" });
     subtitleInput.value = "";
   });
+}, 'login.html');
 
 </script>
 
