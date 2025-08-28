@@ -87,7 +87,7 @@ addBtn.addEventListener('click', async () => {
   }
 
   // Boş obje koyuyoruz; bu, Firebase DB'de node'u oluşturur
-  set(child(rootRef, key), {})
+  set(child(rootRef, key), "deneme")
     .then(() => { titleInput.value = ''; })
     .catch(err => alert('Ekleme hatası: ' + err.message));
 });
