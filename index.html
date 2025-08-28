@@ -44,36 +44,37 @@ checkAuth(user => {
   onValue(rootRef, snapshot => {
     itemsList.innerHTML = '';
     if (!snapshot.exists()) return;
-    snapshot.forEach(childSnap => {
-      const key = childSnap.key;
-      const li = document.createElement('li');
-      li.style.display = "flex";
-      li.style.alignItems = "center";
-      li.style.gap = "8px";
+   snapshot.forEach(childSnap => {
+  const key = childSnap.key;
 
-      const nameSpan = document.createElement('span');
-      nameSpan.textContent = key;
-      nameSpan.style.cursor = "pointer";
-       // Başlığa tıklayınca page.html aç
-      nameSpan.addEventListener('click', () => {
-        const path = encodeURIComponent(key);
-        window.location.href = `page.html?path=${path}`;
-      });
+  const li = document.createElement('li');
+  li.style.display = "flex";
+  li.style.alignItems = "center";
+  li.style.gap = "8px";
 
+  const nameSpan = document.createElement('span');
+  nameSpan.textContent = key;
+  nameSpan.style.cursor = "pointer";
 
-      const delBtn = document.createElement('button');
-      delBtn.textContent = "Sil";
-      delBtn.className = "deleteBtn";
-      delBtn.addEventListener('click', e => {
-        e.stopPropagation();
-        if (!confirm(`"${key}" silinsin mi?`)) return;
-        remove(child(rootRef, key)).catch(err => alert('Silme hatası: ' + err.message));
-      });
+  // Başlığa tıklayınca page.html aç
+  nameSpan.addEventListener('click', () => {
+    const path = encodeURIComponent(key);
+    window.location.href = `page.html?path=${path}`;
+  });
 
-      li.appendChild(nameSpan);
-      li.appendChild(delBtn);
-      itemsList.appendChild(li);
-    });
+  const delBtn = document.createElement('button');
+  delBtn.textContent = "Sil";
+  delBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!confirm(`"${key}" silinsin mi?`)) return;
+    remove(child(rootRef, key)).catch(err => alert('Silme hatası: ' + err.message));
+  });
+
+  li.appendChild(nameSpan);
+  li.appendChild(delBtn);
+  itemsList.appendChild(li);
+});
+
   });
 
   addBtn.addEventListener('click', async () => {
