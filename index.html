@@ -31,17 +31,16 @@ let currentUserId = null;
 // Firebase key olarak kullanılamayan karakterleri temizle
 function sanitizeKey(s) {
   return String(s || '').trim()
-    .replace(/\//g, '-')       // '/' bizim path ayırıcımız olmasın
-    .replace(/[.$#[\]]/g, '-') // Firebase yasaklı char'ları değiştir
-    .replace(/\s+/g, ' ')      // çoklu boşluğu tek boşluk yap
-    .replace(/^\s+|\s+$/g, ''); // baş-son trim
+    .replace(/\//g, '-')       
+    .replace(/[.$#[\]]/g, '-') 
+    .replace(/\s+/g, ' ')      
+    .replace(/^\s+|\s+$/g, ''); 
 }
 
 checkAuth(user => {
   currentUserId = user.uid;
   const rootRef = userRootRef(currentUserId);
 
-  // Başlıkları canlı dinle ve listele
   onValue(rootRef, snapshot => {
     itemsList.innerHTML = '';
     if (!snapshot.exists()) return;
@@ -54,6 +53,11 @@ checkAuth(user => {
 
       const nameSpan = document.createElement('span');
       nameSpan.textContent = key;
+      nameSpan.style.cursor = "pointer";
+      nameSpan.onclick = () => {
+        const path = encodeURIComponent(key);
+        window.location.href = `page.html?path=${path}`;
+      };
 
       const delBtn = document.createElement('button');
       delBtn.textContent = "Sil";
@@ -70,17 +74,13 @@ checkAuth(user => {
     });
   });
 
-  // Yeni başlık ekleme
   addBtn.addEventListener('click', async () => {
     const raw = titleInput.value;
     const key = sanitizeKey(raw);
     if (!key) return alert('Lütfen geçerli bir başlık girin!');
-
     const existing = await get(child(rootRef, key));
     if (existing.exists()) return alert('Bu başlık zaten var!');
-
-    // type: "başlık" olarak kaydet
-    set(child(rootRef, key), { type: "başlık" })
+    set(child(rootRef, key), { type: "title" })
       .then(() => { titleInput.value = ''; })
       .catch(err => alert('Ekleme hatası: ' + err.message));
   });
