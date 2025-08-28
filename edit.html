@@ -56,14 +56,18 @@ checkAuth(user => {
 Object.keys(data).forEach(key => {
   if (key === "type") return;
 
+  const value = data[key];
   const li = document.createElement("li");
-  li.style.cursor = "pointer"; // Tüm li tıklanabilir gibi görünmeli
+  li.style.cursor = "pointer";
 
-  // 👇 Bu event artık li üzerinde
   li.addEventListener("click", () => {
-    const newId = [...pathSegments, key].join("_");
-    console.log("Navigating to:", newId);
-    window.location.href = `edit.html?id=${encodeURIComponent(newId)}`;
+    // Eğer alt başlık (object ve type: subtitle) ise yönlendir
+    if (typeof value === "object" && value.type === "subtitle") {
+      const newId = [...pathSegments, key].join("_");
+      window.location.href = `edit.html?id=${encodeURIComponent(newId)}`;
+    } else {
+      alert("Bu bir başlık değil, sadece veri gösterimidir.");
+    }
   });
 
   const span = document.createElement("span");
@@ -71,8 +75,6 @@ Object.keys(data).forEach(key => {
 
   const deleteBtn = document.createElement("button");
   deleteBtn.textContent = "Delete";
-
-  // ❗ Dikkat: Burada stopPropagation kullanıyoruz
   deleteBtn.addEventListener("click", e => {
     e.stopPropagation(); // li'ye tıklamayı engelle
     remove(child(currentRef, key));
@@ -81,6 +83,7 @@ Object.keys(data).forEach(key => {
   li.append(span, deleteBtn);
   subitemsList.append(li);
 });
+
 
   });
 
