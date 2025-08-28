@@ -23,46 +23,53 @@
 import { checkAuth, userItemRef } from './firebaseConfig.js';
 import { onValue, set, remove, child } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
-// DOM Elements
+// DOM
 const itemTitle = document.getElementById("itemTitle");
 const subtitleInput = document.getElementById("subtitleInput");
 const addSubBtn = document.getElementById("addSubBtn");
 const subitemsList = document.getElementById("subitemsList");
 
-// Get main item title from URL
+// Get current item ID (could be a main or subitem)
 const urlParams = new URLSearchParams(window.location.search);
-const mainKey = urlParams.get("id");
-if (!mainKey) {
+const currentKey = urlParams.get("id");
+if (!currentKey) {
   alert("Item not found");
   window.location.href = "index.html";
 }
 
-// Sayfa başlığı
-itemTitle.textContent = mainKey;
+// Show title
+itemTitle.textContent = currentKey;
 
-// Kullanıcıyı kontrol et
+// Auth check
 checkAuth(user => {
-  const mainRef = userItemRef(user.uid, mainKey);
+  const currentRef = userItemRef(user.uid, currentKey);
 
-  // Listeleme
-  onValue(mainRef, snapshot => {
+  // Read children of current item
+  onValue(currentRef, snapshot => {
     subitemsList.innerHTML = "";
     const data = snapshot.val();
 
+    if (!data) return;
+
     for (const key in data) {
-      if (key === "type") continue; // sadece "title" ana veriyi atla
-      const value = data[key];
+      if (key === "type") continue;
 
       const li = document.createElement("li");
       const span = document.createElement("span");
       span.textContent = key;
+      span.style.cursor = "pointer";
+
+      // Alt başlığa tıklanınca edit.html?id=key olarak aç
+      span.addEventListener("click", () => {
+        window.location.href = `edit.html?id=${encodeURIComponent(key)}`;
+      });
 
       const deleteBtn = document.createElement("button");
       deleteBtn.textContent = "Delete";
       deleteBtn.className = "deleteBtn";
       deleteBtn.addEventListener("click", e => {
         e.stopPropagation();
-        remove(child(mainRef, key));
+        remove(child(currentRef, key));
       });
 
       li.appendChild(span);
@@ -71,13 +78,13 @@ checkAuth(user => {
     }
   });
 
-  // Alt başlık ekleme
+  // Yeni alt başlık ekle
   addSubBtn.addEventListener("click", () => {
     const subTitle = subtitleInput.value.trim();
     if (!subTitle) return alert("Please enter a subitem!");
 
     const sanitizedKey = subTitle.replace(/[.#$/\[\]]/g, "_");
-    const subRef = child(mainRef, sanitizedKey);
+    const subRef = child(currentRef, sanitizedKey);
     set(subRef, { type: "subtitle" });
 
     subtitleInput.value = "";
